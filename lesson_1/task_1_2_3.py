@@ -2,20 +2,33 @@ import platform
 from ipaddress import ip_address
 from tabulate import tabulate
 from subprocess import Popen, PIPE
+import threading
 
 result = {'Узел доступен': '', 'Узел недоступен': ''}
 
 
-def host_ping(ip_dict):
-    for ip in ip_dict:
-        param = '-n' if platform.system().lower() == 'windows' else '-c'
-        args = ['ping', param, '1', str(ip)]
-        reply = Popen(args, stdout=PIPE)
+def ping(ip, result, get_list):
+    param = '-n' if platform.system().lower() == 'windows' else '-c'
+    args = ['ping', param, '1', str(ip)]
+    reply = Popen(args, stdout=PIPE)
 
-        if reply.wait() == 0:
-            result['Узел доступен'] += f'{ip}\n'
-        else:
-            result['Узел недоступен'] += f'{ip}\n'
+    if reply.wait() == 0:
+        result['Узел доступен'] += f'{ip}\n'
+    else:
+        result['Узел недоступен'] += f'{ip}\n'
+    return result
+
+
+def host_ping(ip_dict, get_list=False):
+    threads = []
+    for ip in ip_dict:
+        thread = threading.Thread(target=ping, args=(ip, result, get_list))
+        thread.start()
+        threads.append(thread)
+
+    for thread in threads:
+        thread.join()
+
     return result
 
 
